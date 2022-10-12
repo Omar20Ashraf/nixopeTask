@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\User;
+use App\Events\UserCreatedEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Http\Requests\Api\UserRequest;
@@ -38,6 +39,8 @@ class UserController extends Controller
         $user = User::create($data);
 
         $user->roles()->attach($data['roles_id']);
+
+        UserCreatedEvent::dispatch($user);
 
         return (new UserResource($user))->additional([
             'status' => true,

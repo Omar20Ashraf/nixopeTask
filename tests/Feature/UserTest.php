@@ -4,8 +4,11 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Events\UserCreatedEvent;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Listeners\SendEmailActivationListener;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class UserTest extends TestCase
@@ -66,5 +69,38 @@ class UserTest extends TestCase
         $data = User::factory()->raw(['email' => '']);
 
         $this->post('/api/user', $data)->assertSessionHasErrors('email');
+    }
+
+    /** @test  */
+    public function a_event_is_dispatched_when_user_register()
+    {
+        # code...
+        Event::fake([UserCreatedEvent::class]);
+
+        $this->seed(RoleSeeder::class);
+
+        $data = User::factory()->raw(['roles_id' => [1]]);
+
+        $this->post('/api/user', $data);
+
+        Event::assertDispatched(UserCreatedEvent::class);
+    }
+
+    /** @test  */
+    public function a_listener_is_dispatched_when_user_register()
+    {
+        # code...
+        Event::fake([UserCreatedEvent::class]);
+
+        $this->seed(RoleSeeder::class);
+
+        $data = User::factory()->raw(['roles_id' => [1]]);
+
+        $this->post('/api/user', $data);
+
+        Event::assertListening(
+            UserCreatedEvent::class,
+            SendEmailActivationListener::class
+        );
     }
 }
