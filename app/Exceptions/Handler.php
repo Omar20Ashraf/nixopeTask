@@ -2,8 +2,14 @@
 
 namespace App\Exceptions;
 
-use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
+use GuzzleHttp\Exception\ClientException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 class Handler extends ExceptionHandler
 {
@@ -46,5 +52,55 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    public function render($request, Throwable $exception)
+    {
+        if ($request->is('api/*')) {
+
+            if ($exception instanceof ModelNotFoundException || $exception instanceof NotFoundHttpException) {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Not Found',
+                    'errors' => 'Not Found',
+                ], 404);
+            }
+
+            if ($exception instanceof AuthorizationException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized',
+                    'errors' => 'Unauthorized',
+                ], 403);
+            }
+
+            if ($exception instanceof AuthenticationException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unauthorized',
+                    'errors' => 'Unauthorized',
+                ], 401);
+            }
+
+            if ($exception instanceof MethodNotAllowedHttpException) {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => $exception->getMessage(),
+                    'errors' => $exception->getMessage(),
+                ], 405);
+            }
+            if ($exception instanceof ClientException) {
+
+                return response()->json([
+                    'status' => false,
+                    'message' => $exception->getMessage(),
+                    'errors' => $exception->getMessage(),
+                ], 500);
+            }
+        }
+
+        return parent::render($request, $exception);
     }
 }
